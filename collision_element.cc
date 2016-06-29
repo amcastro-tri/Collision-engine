@@ -1,4 +1,6 @@
-
+// This is the collision element instantiated by the user.
+// The actual implementation (Bullet, FCL, others) is completely hidden.
+// There are no Bullet or FCL includes here.
 class CollisionElement { // DrakeCollision::Element right now
 public:
   CollisionElement(const DrakeShapes::Geometry& geometry, const Eigen::Isometry3d& T_geo_to_element) { 
@@ -7,6 +9,8 @@ public:
     pimpl_.reset(new BulletCollisionElement(geometry, T_geo_to_element));
 #elif FCL_COLLISION
     pimpl_.reset(new FCLCollisionElement(geometry, T_geo_to_element));
+#else
+    // ... some sort of static assert ...
 #endif
   }
 
@@ -28,6 +32,7 @@ private:
   std::unique_ptr<CollisionElementImpl> pimpl_;
 };
 
+// Base (abstract) class for implementations.
 class CollisionElementImpl {
 public:
   virtual void add_to_collision_clique(int clique) = 0;
@@ -36,6 +41,7 @@ public:
 };
 
 // A particular implementation for Bullet collision elements
+// This will live in its own header + cc files with the appropiate Bullet includes.
 class BulletCollisionElement: public CollisionElementImpl {
 public:
   BulletCollisionElement(const DrakeShapes::Geometry& geometry, const Eigen::Isometry3d& T_geo_to_element) { 
@@ -53,7 +59,8 @@ private:
   std::unique_ptr<btCollisionObject> bt_obj_;  
 };
 
-// A particular implementation for FCL collision elements
+// A particular implementation for FCL collision elements.
+// This will live in its own header + cc files with the appropiate FCL includes.
 class FCLCollisionElement: public CollisionElementImpl {
 public:
   FCLCollisionElement(const DrakeShapes::Geometry& geometry, const Eigen::Isometry3d& T_geo_to_element) { 
