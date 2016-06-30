@@ -14,11 +14,10 @@ public:
 #endif
   }
   
-  // The CollisionWorld (not the implementation) takes ownership of the CollisionElement.
+  // The CollisionWorldImpl takes ownership of the CollisionElement.
   // In turn, CollisionElement has ownership of its own implmentation.
   void add_collision_element(std::unique_ptr<CollisionElement> element) {
-    pimpl_->add_collision_element(element.get());     // this call does not take ownership.
-    collision_objects_.push_back(std::move(element)); // take ownership here.
+    pimpl_->add_collision_element(element);     // takes ownership
   }
 
   void ComputeMaximumDepthCollisionPoints() {
@@ -26,15 +25,21 @@ public:
   }
   
 private:
-  std::vector<std::unique_ptr<CollisionObject>> collision_objects_; 
   std::unique_ptr<CollisionWorldImpl> pimpl_;
 };
 
 // Base (abstract) class for implementations.
 class CollisionWorldImpl {
 public:
-  virtual void add_collision_element(CollisionElement* element) = 0;  
+  void add_collision_element(std::unique_ptr<CollisionElement> element) {
+    add_collision_element(element.get());              // does not take ownership.
+    collision_objects_.push_back(std::move(element));  // take ownership here.
+  }
+  
   virtual void ComputeMaximumDepthCollisionPoints() = 0;
+  virtual void add_collision_element(CollisionElement* element) = 0;
+private:
+  std::vector<std::unique_ptr<CollisionObject>> collision_objects_; 
 };
 
 // This will live in its own header + cc files with the appropiate Bullet includes.
@@ -44,7 +49,7 @@ public:
     // ... Construction and Bullet's world setup here ...
   }
   void add_collision_element(CollisionElement* element) override {
-    collision_objects_.push_back(dynamic_cast<BulletCollisionElement>(CollisionElement));
+    bt_collision_objects_.push_back(dynamic_cast<BulletCollisionElement*>(element));
   }
   
   // Some collision dispatch method.
@@ -59,10 +64,10 @@ private:
   // No nasty integer id's.
   // No readElement calls.
   // No dynamic_cast's all over the place.
-  std::vector<BulletCollisionElement*> collision_objects_; 
+  std::vector<BulletCollisionElement*> bt_collision_objects_; 
 
   // As you can see it can get quite complex for a specific implementation.
-  // So very worth encapsulating it into a simple implementatin object.
+  // So very worth encapsulating it into a simple implementation object.
   btDefaultCollisionConfiguration bt_collision_configuration;
   btDbvtBroadphase bt_collision_broadphase;
   OverlapFilterCallback filter_callback;
